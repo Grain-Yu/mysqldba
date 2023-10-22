@@ -12,6 +12,7 @@ import subprocess
 import psutil
 import logging
 from collections import Counter
+from operator import itemgetter
 
 # 日志文件
 logfile="/tmp/mysql-snapshot.log"
@@ -563,3 +564,38 @@ def get_log_dir(dbaction):
     slow_log = data_dir + slow_log
     error_log = data_dir + error_log.split('/')[1]
     return slow_log, error_log
+
+def get_topsql(dbaction,sorted_dict):
+    topsql_dict = {}
+    for i in range(20):
+        sql = "SELECT b.HOST, b.db, b.USER, a.THREAD_OS_ID os_id, b.id processlist_id, b.command, b.time, b.state, a.PROCESSLIST_INFO, b.info sql FROM PERFORMANCE_SCHEMA.threads a, information_schema.PROCESSLIST b WHERE b.id = a.processlist_id AND a.THREAD_OS_ID = %s" %(sorted_dict[0][i])
+        print(sql)
+        try:
+            logging.info('开始获取topsql')
+            topsql_obj, desc = dbaction.data_inquiry(sql)
+        except:
+            error_msg = str(traceback.format_exc())
+            logging.info('连接池获取连接出错:%s' % error_msg)
+            topsql_obj = ()
+
+    if topsql_obj:
+        for item in topsql_obj:
+            topsql_dict[item[0]] = item[1]
+            return topsql_dict
+        else:
+            return {}
+    
+    def sort_fromfile():
+        lines = []
+        #read txt file line by line and stored in list
+        with open('top_info.txt', 'r') as f:
+            lines = f.readlines()
+        lines_len = len(lines) - 7 
+        #info need to process
+        cols_name = [i for i in lines[6].split()]
+        arrays = [[0 for i in lines[6].split()] for i in range(lines_len)] #initialize matrix
+        #赋值
+        for i in range(7, len(lines)):
+            arrays[i-7] = lines[i].split()
+        arrays_sorted_by_cpu = sorted(arrays, key=itemgetter(8), reverse = True)
+        return arrays_sorted_by_cpu
