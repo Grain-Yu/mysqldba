@@ -118,6 +118,19 @@ def command_line_args(args):
         args.password = args.password[0]
     return args
 
+def command_line_args_topsql(args):
+    need_print_help = False if args else True
+    parser = parse_args()
+    args = parser.parse_args(args)
+    if args.help or need_print_help:
+        parser.print_help()
+        sys.exit(1)
+    if not args.password:
+        args.password = getpass.getpass()
+    else:
+        args.password = args.password[0]
+    return args
+
 
 def dt2str(data):
     if isinstance(data, datetime.datetime):
@@ -568,7 +581,7 @@ def get_log_dir(dbaction):
 def get_topsql(dbaction,sorted_dict):
     topsql_dict = {}
     for i in range(20):
-        sql = "SELECT b.HOST, b.db, b.USER, a.THREAD_OS_ID os_id, b.id processlist_id, b.command, b.time, b.state, a.PROCESSLIST_INFO, b.info sql FROM PERFORMANCE_SCHEMA.threads a, information_schema.PROCESSLIST b WHERE b.id = a.processlist_id AND a.THREAD_OS_ID = %s" %(sorted_dict[0][i])
+        sql = "SELECT a.THREAD_OS_ID,b.id,b.user,b.host,b.db,b.command, b.time, b.state,b.info FROM performance_schema.threads a, information_schema.PROCESSLIST b WHERE b.id = a.processlist_id AND a.THREAD_OS_ID = %s" %(sorted_dict[i][0])
         print(sql)
         try:
             logging.info('开始获取topsql')
@@ -585,17 +598,17 @@ def get_topsql(dbaction,sorted_dict):
         else:
             return {}
     
-    def sort_fromfile():
-        lines = []
-        #read txt file line by line and stored in list
-        with open('top_info.txt', 'r') as f:
-            lines = f.readlines()
-        lines_len = len(lines) - 7 
-        #info need to process
-        cols_name = [i for i in lines[6].split()]
-        arrays = [[0 for i in lines[6].split()] for i in range(lines_len)] #initialize matrix
-        #赋值
-        for i in range(7, len(lines)):
-            arrays[i-7] = lines[i].split()
-        arrays_sorted_by_cpu = sorted(arrays, key=itemgetter(8), reverse = True)
-        return arrays_sorted_by_cpu
+def sort_fromfile():
+    lines = []
+    #read txt file line by line and stored in list
+    with open('top_info.txt', 'r') as f:
+        lines = f.readlines()
+    lines_len = len(lines) - 7 
+    #info need to process
+    cols_name = [i for i in lines[6].split()]
+    arrays = [[0 for i in lines[6].split()] for i in range(lines_len)] #initialize matrix
+    #赋值
+    for i in range(7, len(lines)):
+        arrays[i-7] = lines[i].split()
+    arrays_sorted_by_cpu = sorted(arrays, key=itemgetter(8), reverse = True)
+    return arrays_sorted_by_cpu

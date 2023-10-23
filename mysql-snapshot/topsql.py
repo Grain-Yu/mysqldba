@@ -28,7 +28,7 @@ class Topsql(object):
             print(topsql_dict[i])
 
 if __name__ == '__main__':
-    args = command_line_args(sys.argv[1:])
+    args = command_line_args_topsql(sys.argv[1:])
     conn_setting = {'host': args.host, 'port': args.port,
                     'user': args.user, 'password': args.password, 'charset': 'utf8'}
     topsql = Topsql(connection_settings=conn_setting)
